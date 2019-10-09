@@ -36,6 +36,7 @@ class GOFI.TaskTimer {
             return new DateTime.from_unix_utc (0).add (diff);
         }
         set {
+            print ("Changing remaining_duration to %i\n", (int) value.to_unix ());
             // Don't change, while timer is running
             if (!running) {
                 TimeSpan diff = value.difference (remaining_duration);
@@ -50,6 +51,7 @@ class GOFI.TaskTimer {
     public TodoTask? active_task {
         get { return _active_task; }
         set {
+            print ("Setting active task to %p, was %p\n", value, _active_task);
             bool was_running = running;
             stop ();
             if (settings.reset_timer_on_task_switch) {
@@ -164,6 +166,11 @@ class GOFI.TaskTimer {
 
     public void start () {
         if (!running && _active_task != null) {
+            print ("Timer started\n");
+            print ("Timer duration is %is\n", (int) duration_till_end.to_unix ());
+            print ("Schedule is:\n");
+            schedule.print_contents ();
+            print ("Current iteration is %u\n", iteration);
             start_time = new DateTime.now_utc ();
             if (_active_task.duration > 0) {
                 remaining_task_duration = (int) remaining_duration.to_unix ()
@@ -174,20 +181,26 @@ class GOFI.TaskTimer {
 
             running = true;
             timer_started ();
+        } else {
+            print ("Start called, but timer is already running\n");
         }
     }
 
     public void stop () {
         if (running) {
+            print ("Timer stopped\n");
             duration_till_end = remaining_duration;
             var runtime = get_runtime ().to_unix ();
             previous_runtime += runtime;
             running = false;
             timer_stopped (start_time, (uint) runtime);
+        } else {
+            print ("Stop called, but timer is not running\n");
         }
     }
 
     public void reset () {
+        print ("Resetting timer\n");
         int64 default_duration;
         if (break_active) {
             default_duration = schedule.get_break_duration (iteration);
@@ -220,6 +233,7 @@ class GOFI.TaskTimer {
         // Check if "almost over" signal is to be send
         if (rem_duration_unix <= reminder_time) {
             if (settings.reminder_active && !almost_over_sent_already) {
+                print ("Sending \"almost over\" notification\n");
                 timer_almost_over (remaining_duration);
                 almost_over_sent_already = true;
             }
@@ -270,6 +284,7 @@ class GOFI.TaskTimer {
      * Used to toggle between break and work state.
      */
     private void toggle_break () {
+        print("Toggle_break called\n");
         if (break_active) {
             iteration++;
         }
@@ -278,6 +293,8 @@ class GOFI.TaskTimer {
         reset ();
         if (break_active || settings.resume_tasks_after_break) {
             start ();
+        } else {
+            print("Break not active and auto resume disabled: not restarting\n");
         }
         active_task_changed (_active_task, break_active);
     }
@@ -288,8 +305,9 @@ class GOFI.TaskTimer {
      * Handles switchting between breaks and active tasks as well as
      * emitting all corresponding signals.
      */
-    public void end_iteration ()  {
+    public void end_iteration () {
         // Emit the "timer_finished" signal
+        print("Timer finished, sending notification and stopping timer\n");
         timer_finished (break_active);
         stop ();
         toggle_break ();

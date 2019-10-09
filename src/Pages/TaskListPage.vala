@@ -275,16 +275,17 @@ class GOFI.TaskListPage : Gtk.Grid {
     }
 
     private void on_active_task_changed () {
+        print ("active task changed to %p\n", _active_list.active_task);
         task_timer.active_task = _active_list.active_task;
     }
 
     private void on_selected_task_changed () {
         // Don't change task, while timer is running
+        print ("selected task changed to %p\n", _shown_list.selected_task);
         if (!task_timer.running) {
             if (_shown_list != _active_list) {
                 switch_active_task_list ();
             }
-            task_timer.active_task = _shown_list.selected_task;
             _shown_list.active_task = _shown_list.selected_task;
         }
     }
@@ -317,6 +318,7 @@ class GOFI.TaskListPage : Gtk.Grid {
      * until the user selects another task.
      */
     public void show_task_list (TaskList task_list) {
+        print ("Showing list: %p\n", task_list);
         if (task_list == _shown_list) {
             return;
         }
